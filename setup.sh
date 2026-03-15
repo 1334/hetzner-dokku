@@ -130,5 +130,26 @@ if [ "$ENABLE_OAUTH" = "true" ]; then
   ssh "$SSH_HOST" "systemctl status oauth2-proxy --no-pager" || true
 fi
 
+# Update notifications via ntfy.sh
+NTFY_TOPIC="${TF_NTFY_TOPIC:-}"
+NTFY_SCHEDULE="${TF_NTFY_SCHEDULE:-0 3 * * 6}"
+if [ -n "$NTFY_TOPIC" ]; then
+  echo "==> Setting up update notifications (topic: ${NTFY_TOPIC}, schedule: ${NTFY_SCHEDULE})..."
+  ssh "$SSH_HOST" "sudo rm -f /etc/cron.weekly/update-check"
+  ssh "$SSH_HOST" "sudo tee /usr/local/bin/update-check > /dev/null << 'SCRIPT'
+#!/bin/bash
+updates=\$(apt list --upgradable 2>/dev/null | grep -c upgradable || true)
+dokku_current=\$(dokku version 2>/dev/null)
+if [ \"\$updates\" -gt 0 ]; then
+  curl -sf -d \"[\$(hostname)] \$updates packages upgradable. \$dokku_current\" https://ntfy.sh/${NTFY_TOPIC}
+fi
+SCRIPT
+sudo chmod +x /usr/local/bin/update-check"
+  ssh "$SSH_HOST" "echo '${NTFY_SCHEDULE} root /usr/local/bin/update-check' | sudo tee /etc/cron.d/update-check > /dev/null"
+else
+  echo "==> Removing update notifications (no ntfy topic set)..."
+  ssh "$SSH_HOST" "sudo rm -f /etc/cron.weekly/update-check /etc/cron.d/update-check /usr/local/bin/update-check"
+fi
+
 echo ""
 echo "==> Done (oauth: ${ENABLE_OAUTH})"

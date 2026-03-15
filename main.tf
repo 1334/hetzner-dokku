@@ -30,6 +30,8 @@ resource "hcloud_server" "dokku" {
   user_data = templatefile("${path.module}/cloud-init.yaml", {
     ssh_public_key = var.ssh_public_key
     email_domain   = var.email_domain
+    ntfy_topic     = var.ntfy_topic
+    ntfy_schedule  = var.ntfy_schedule
   })
 
   public_net {
@@ -47,6 +49,8 @@ resource "null_resource" "setup" {
   triggers = {
     enable_oauth = var.enable_oauth
     server_ip    = hcloud_server.dokku.ipv4_address
+    ntfy_topic    = var.ntfy_topic
+    ntfy_schedule = var.ntfy_schedule
   }
 
   provisioner "local-exec" {
@@ -57,6 +61,8 @@ resource "null_resource" "setup" {
       TF_GOOGLE_CLIENT_ID     = var.google_client_id
       TF_GOOGLE_CLIENT_SECRET = var.google_client_secret
       TF_EMAIL_DOMAIN         = var.email_domain
+      TF_NTFY_TOPIC           = var.ntfy_topic
+      TF_NTFY_SCHEDULE        = var.ntfy_schedule
     }
   }
 

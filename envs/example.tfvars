@@ -13,3 +13,8 @@ google_client_id     = ""
 google_client_secret = ""
 
 # email_domain = "example.com"
+
+# Update notifications via ntfy.sh (leave empty to disable)
+# ntfy_topic    = "dokku-myinstance-updates-abc123"
+# ntfy_schedule = "0 3 * * 6"    # default: Saturday 3am
+# ntfy_schedule = "0 3 1-7 * 6"  # first Saturday of the month

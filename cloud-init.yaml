@@ -100,6 +100,21 @@ runcmd:
     EOF
     chmod +x /etc/cron.weekly/docker-cleanup
 
+  # Update notifications via ntfy.sh
+%{ if ntfy_topic != "" ~}
+  - |
+    cat > /usr/local/bin/update-check << 'EOF'
+    #!/bin/bash
+    updates=$(apt list --upgradable 2>/dev/null | grep -c upgradable || true)
+    dokku_current=$(dokku version 2>/dev/null)
+    if [ "$updates" -gt 0 ]; then
+      curl -sf -d "[$(hostname)] $updates packages upgradable. $dokku_current" https://ntfy.sh/${ntfy_topic}
+    fi
+    EOF
+    chmod +x /usr/local/bin/update-check
+    echo '${ntfy_schedule} root /usr/local/bin/update-check' > /etc/cron.d/update-check
+%{ endif ~}
+
   # Signal cloud-init complete
   - touch /home/deploy/.cloud-init-complete
   - chown deploy:deploy /home/deploy/.cloud-init-complete

@@ -41,3 +41,13 @@ variable "email_domain" {
   description = "Allowed email domain for SSO"
   default     = ""
 }
+
+variable "ntfy_topic" {
+  description = "ntfy.sh topic for update notifications (leave empty to disable)"
+  default     = ""
+}
+
+variable "ntfy_schedule" {
+  description = "Cron schedule for update notifications (default: Saturday 3am)"
+  default     = "0 3 * * 6"
+}
