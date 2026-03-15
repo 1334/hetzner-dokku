@@ -1,0 +1,106 @@
+#cloud-config
+
+users:
+  - name: deploy
+    groups: sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+  - curl
+  - wget
+  - git
+  - debian-keyring
+  - debian-archive-keyring
+  - apt-transport-https
+
+ssh_pwauth: false
+
+bootcmd:
+  - export DEBIAN_FRONTEND=noninteractive
+
+runcmd:
+  - export DEBIAN_FRONTEND=noninteractive
+
+  # Swap (2GB)
+  - fallocate -l 2G /swapfile
+  - chmod 600 /swapfile
+  - mkswap /swapfile
+  - swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  - echo 'vm.swappiness=10' >> /etc/sysctl.conf
+  - sysctl -p
+
+  # Dokku
+  - wget -NqO /tmp/bootstrap.sh https://dokku.com/bootstrap.sh
+  - DEBIAN_FRONTEND=noninteractive bash /tmp/bootstrap.sh
+
+  # Add deploy user's SSH key to Dokku
+  - echo "${ssh_public_key}" | dokku ssh-keys:add admin
+
+  # Dokku plugins
+  - dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
+  - dokku plugin:install https://github.com/dokku/dokku-postgres.git
+
+  # Set global Dokku config
+  - dokku letsencrypt:set --global email ops@${email_domain}
+
+  # Prepare directory for global nginx sigil (deployed by setup.sh)
+  - mkdir -p /etc/dokku
+
+  # Harden SSH
+  - sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+  - sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  - sed -i '/^AllowUsers/d' /etc/ssh/sshd_config
+  - echo "AllowUsers deploy dokku" >> /etc/ssh/sshd_config
+  - sshd -t && systemctl restart ssh
+
+  # Configure UFW
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+
+  # Configure fail2ban
+  - |
+    cat > /etc/fail2ban/jail.local << 'EOF'
+    [sshd]
+    enabled = true
+    port = ssh
+    filter = sshd
+    maxretry = 5
+    bantime = 3600
+    EOF
+  - systemctl enable fail2ban
+  - systemctl restart fail2ban
+
+  # Enable unattended security upgrades
+  - |
+    cat > /etc/apt/apt.conf.d/20auto-upgrades << 'EOF'
+    APT::Periodic::Update-Package-Lists "1";
+    APT::Periodic::Unattended-Upgrade "1";
+    APT::Periodic::AutocleanInterval "7";
+    EOF
+
+  # Docker cleanup cron (weekly)
+  - |
+    cat > /etc/cron.weekly/docker-cleanup << 'EOF'
+    #!/bin/bash
+    docker system prune -af --filter "until=168h"
+    EOF
+    chmod +x /etc/cron.weekly/docker-cleanup
+
+  # Signal cloud-init complete
+  - touch /home/deploy/.cloud-init-complete
+  - chown deploy:deploy /home/deploy/.cloud-init-complete
+

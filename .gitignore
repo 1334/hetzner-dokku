@@ -1,0 +1,7 @@
+envs/*.tfvars
+!envs/example.tfvars
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+setup.log
