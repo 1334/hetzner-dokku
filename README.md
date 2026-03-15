@@ -245,6 +245,39 @@ If you modify `nginx.conf.sigil`, run setup.sh and rebuild each app:
 dokku ps:rebuild myapp
 ```
 
+### Connecting to Postgres with GUI tools
+
+Dokku Postgres runs in a Docker container that's only accessible from the server. Use your GUI tool's SSH tunnel feature to connect.
+
+**1. Get the container's internal IP and password:**
+
+```bash
+# Internal IP
+ssh dokku-host "docker inspect dokku.postgres.myapp-db --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'"
+
+# Password (from the DSN)
+dokku postgres:info myapp-db
+# Look for the Dsn line: postgres://postgres:PASSWORD@...:5432/myapp_db
+```
+
+**2. Configure your GUI tool (TablePlus, DBeaver, pgAdmin, etc.):**
+
+| Field | Value |
+|-------|-------|
+| Host | Container internal IP (e.g. `172.17.0.4`) |
+| Port | `5432` |
+| User | `postgres` |
+| Password | From the Dsn above |
+| Database | `myapp_db` |
+| SSL mode | Preferred |
+| **SSH tunnel** | |
+| Server | Dokku host IP |
+| Port | `22` |
+| User | `deploy` |
+| Auth | SSH key (your `~/.ssh/config` key for this instance) |
+
+The internal IP can change if the container restarts. Re-run the `docker inspect` command if the connection drops.
+
 ### Database backups
 
 ```bash
