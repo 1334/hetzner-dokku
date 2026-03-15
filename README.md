@@ -9,7 +9,7 @@ Terraform + cloud-init provisioning for Dokku hosts on Hetzner Cloud. Supports m
 - **oauth2-proxy** (managed by setup.sh) — Google SSO, restricted to your email domain
 - **Global nginx template** — `auth_request` enforces SSO on every app
 - **Security hardening** — UFW (ports 22/80/443), fail2ban, SSH key-only, unattended upgrades
-- **Maintenance** — weekly Docker image cleanup cron, 2GB swap
+- **Maintenance** — weekly Docker image cleanup cron, 2GB swap, optional update notifications via [ntfy.sh](https://ntfy.sh)
 
 ## Prerequisites
 
@@ -244,6 +244,19 @@ dokku postgres:start myapp-db
 ssh dokku-work "docker system prune -af"
 ```
 
+### Update notifications
+
+Set `ntfy_topic` in your instance's tfvars to get push notifications when OS packages are upgradable:
+
+```hcl
+ntfy_topic    = "dokku-work-updates-abc123"  # use a random suffix
+ntfy_schedule = "0 3 * * 6"                  # default: Saturday 3am
+```
+
+Common schedules: `"0 3 * * 6"` (weekly Saturday), `"0 3 1-7 * 6"` (first Saturday of the month), `"0 9 1 * *"` (monthly 1st), `"0 9 * * *"` (daily).
+
+Subscribe to the topic on your phone via the [ntfy app](https://ntfy.sh) or at `https://ntfy.sh/your-topic`. Each server should use a separate topic. Notifications are only sent when updates are available.
+
 ### Updating the global nginx template
 
 If you modify `nginx.conf.sigil`, run setup.sh and rebuild each app:
@@ -306,7 +319,7 @@ ssh dokku-host "sudo dokku postgres:backup-schedule myapp-db '0 3 * * *'"
 | File | Purpose |
 |------|---------|
 | `main.tf` | Hetzner VPS + SSH key + null_resource for auto setup |
-| `variables.tf` | Input variables (tokens, keys, domain, `enable_oauth`) |
+| `variables.tf` | Input variables (tokens, keys, domain, `enable_oauth`, `ntfy_topic`) |
 | `outputs.tf` | Server IP, SSH command, OAuth config |
 | `cloud-init.yaml` | Server bootstrap: Dokku, plugins, hardening |
 | `nginx.conf.sigil` | Global nginx template with SSO auth |
