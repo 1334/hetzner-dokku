@@ -86,21 +86,24 @@ Host dokku-personal-push
 
 ### Local dokku alias
 
-Workspace-aware alias — automatically targets the active Terraform workspace:
+Add to `~/.zshrc`:
 
 ```bash
 dokku() {
-  local ws=$(cd ~/path/to/hetzner-dokku && terraform workspace show)
-  ssh "dokku-${ws}" "sudo dokku $*"
+  ssh "dokku-${DOKKU_HOST:?Set DOKKU_HOST first}" "sudo dokku $*"
 }
 ```
 
-Then:
+Set `DOKKU_HOST` to target an instance:
 
 ```bash
+export DOKKU_HOST=work
 dokku apps:list
 dokku logs myapp -t
-dokku config:set myapp KEY=value
+
+# Switch instance
+export DOKKU_HOST=personal
+dokku apps:list
 ```
 
 ## Deploying an app
