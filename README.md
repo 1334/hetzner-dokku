@@ -92,6 +92,15 @@ Add to `~/.zshrc`:
 dokku() {
   ssh "dokku-${DOKKU_HOST:?Set DOKKU_HOST first}" "sudo dokku $*"
 }
+
+# Interactive IEx session for Elixir/Phoenix apps
+# Usage: dokku-iex <app-name>  (e.g. dokku-iex whats-next)
+# Note: `dokku enter` doesn't handle interactive BEAM shells — this uses docker exec directly
+dokku-iex() {
+  local app="${1:?Usage: dokku-iex <app-name>}"
+  local bin="${app//-/_}"
+  ssh -t "dokku-${DOKKU_HOST:?Set DOKKU_HOST first}" "sudo docker exec -it ${app}.web.1 /app/bin/${bin} remote"
+}
 ```
 
 Set `DOKKU_HOST` to target an instance:
