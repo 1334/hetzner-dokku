@@ -325,5 +325,6 @@ ssh dokku-host "sudo dokku postgres:backup-schedule myapp-db '0 3 * * *'"
 | `nginx.conf.sigil` | Global nginx template with SSO auth |
 | `nginx.conf.sigil.public` | Default Dokku nginx template without auth (for public apps) |
 | `setup.sh` | Deploys nginx template, manages oauth2-proxy install/toggle |
+| `setup-ntfy.sh` | Configures update notification cron via ntfy.sh |
 | `envs/*.tfvars` | Per-instance secrets (gitignored) |
 | `envs/example.tfvars` | Config template |
