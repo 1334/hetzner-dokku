@@ -13,6 +13,15 @@ provider "hcloud" {
   token = var.hcloud_token
 }
 
+resource "terraform_data" "workspace_check" {
+  lifecycle {
+    precondition {
+      condition     = terraform.workspace == var.workspace_name
+      error_message = "Workspace '${terraform.workspace}' does not match workspace_name '${var.workspace_name}'. Switch with: terraform workspace select ${var.workspace_name}"
+    }
+  }
+}
+
 # SSH Key
 resource "hcloud_ssh_key" "deploy" {
   name       = "${var.server_name}-key"

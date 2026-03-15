@@ -52,6 +52,10 @@ terraform apply -var-file=envs/work.tfvars
 
 Each workspace has independent state — changes to one instance don't affect the other.
 
+**Warning:** Terraform does not check that your `-var-file` matches the active workspace. Running `terraform apply -var-file=envs/work.tfvars` while the `personal` workspace is selected will apply work's config to your personal server.
+
+Each tfvars file includes a `workspace_name` that must match the active workspace — Terraform will warn if they don't match. Make sure to set `workspace_name = "work"` in `envs/work.tfvars`, etc.
+
 ## SSH access
 
 Add both admin and git-push entries per instance to `~/.ssh/config`:

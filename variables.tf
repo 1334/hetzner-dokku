@@ -1,3 +1,7 @@
+variable "workspace_name" {
+  description = "Must match the Terraform workspace name (safety check)"
+}
+
 variable "hcloud_token" {
   description = "Hetzner Cloud API token"
   sensitive   = true

@@ -1,3 +1,5 @@
+workspace_name = "" # must match terraform workspace name
+
 hcloud_token = ""
 
 ssh_public_key = "ssh-ed25519 AAAA..."
