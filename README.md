@@ -9,7 +9,7 @@ Terraform + cloud-init provisioning for Dokku hosts on Hetzner Cloud. Supports m
 - **oauth2-proxy** (managed by setup.sh) — Google SSO, restricted to your email domain
 - **Global nginx template** — `auth_request` enforces SSO on every app
 - **Security hardening** — UFW (ports 22/80/443), fail2ban, SSH key-only, unattended upgrades
-- **Maintenance** — weekly Docker image cleanup cron, 2GB swap, optional update notifications via [ntfy.sh](https://ntfy.sh)
+- **Maintenance** — Docker image cleanup cron, 2GB swap, optional update notifications via [ntfy.sh](https://ntfy.sh)
 
 ## Prerequisites
 
@@ -128,7 +128,7 @@ dokku domains:set myapp myapp.example.com
 dokku config:set myapp KEY=value SECRET=xxx
 
 # 3. Add git remote and deploy (use the -push host alias)
-git remote add dokku dokku@dokku-work-push:myapp
+git remote add dokku dokku-work-push:myapp
 git push dokku main
 
 # 4. Enable SSL (after DNS points to the server)
@@ -233,7 +233,7 @@ To re-enable SSO for the app, delete `nginx.conf.sigil` from the repo and redepl
 ssh dokku-work "sudo apt update && sudo apt upgrade -y"
 
 # Dokku updates
-ssh dokku-work "sudo apt update && sudo apt install dokku"
+ssh dokku-work "sudo apt update && sudo apt install -y dokku"
 
 # Postgres plugin updates
 dokku postgres:stop myapp-db
@@ -255,16 +255,14 @@ ntfy_schedule = "0 3 * * 6"                  # default: Saturday 3am
 
 Common schedules: `"0 3 * * 6"` (weekly Saturday), `"0 3 1-7 * 6"` (first Saturday of the month), `"0 9 1 * *"` (monthly 1st), `"0 9 * * *"` (daily).
 
-Subscribe to the topic on your phone via the [ntfy app](https://ntfy.sh) or at `https://ntfy.sh/your-topic`. Each server should use a separate topic. Notifications are only sent when updates are available.
+Subscribe to the topic on your phone via the [ntfy app](https://ntfy.sh) or at `ntfy.sh/your-topic`. Each server should use a separate topic. Notifications are only sent when updates are available.
 
 ### Updating the global nginx template
 
 If you modify `nginx.conf.sigil`, run setup.sh and rebuild each app:
 
 ```bash
-./setup.sh
-# Then for each app:
-dokku ps:rebuild myapp
+./setup.sh  # rebuilds all apps automatically
 ```
 
 ### Connecting to Postgres with GUI tools
@@ -275,7 +273,7 @@ Dokku Postgres runs in a Docker container that's only accessible from the server
 
 ```bash
 # Internal IP
-ssh dokku-host "docker inspect dokku.postgres.myapp-db --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'"
+ssh dokku-work "docker inspect dokku.postgres.myapp-db --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'"
 
 # Password (from the DSN)
 dokku postgres:info myapp-db
@@ -311,15 +309,15 @@ dokku postgres:backup myapp-db my-backup-bucket
 
 # Schedule daily backups (bucket reused from above)
 # Note: cron expression must be quoted when run via SSH
-ssh dokku-host "sudo dokku postgres:backup-schedule myapp-db '0 3 * * *'"
+ssh dokku-work "sudo dokku postgres:backup-schedule myapp-db '0 3 * * *'"
 ```
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `main.tf` | Hetzner VPS + SSH key + null_resource for auto setup |
-| `variables.tf` | Input variables (tokens, keys, domain, `enable_oauth`, `ntfy_topic`) |
+| `main.tf` | Hetzner VPS + SSH key + null_resources for setup and ntfy |
+| `variables.tf` | Input variables (tokens, keys, domain, `enable_oauth`, `ntfy_topic`, `ntfy_schedule`) |
 | `outputs.tf` | Server IP, SSH command, OAuth config |
 | `cloud-init.yaml` | Server bootstrap: Dokku, plugins, hardening |
 | `nginx.conf.sigil` | Global nginx template with SSO auth |
