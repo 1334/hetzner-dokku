@@ -18,7 +18,15 @@ SSH_HOST="deploy@${SERVER_IP}"
 
 echo "==> Dokku setup (oauth: ${ENABLE_OAUTH}, server: ${SERVER_IP})"
 
-# Wait for cloud-init on first provision
+# Wait for SSH to become available (new servers take ~30s)
+echo "==> Waiting for SSH..."
+for i in $(seq 1 30); do
+  ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "$SSH_HOST" "true" 2>/dev/null && break
+  echo "    Retry $i..."
+  sleep 10
+done
+
+# Wait for cloud-init to finish
 echo "==> Waiting for cloud-init..."
 ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$SSH_HOST" \
   "while [ ! -f ~/.cloud-init-complete ]; do sleep 5; done"
