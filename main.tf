@@ -44,25 +44,39 @@ resource "hcloud_server" "dokku" {
   }
 }
 
-# Run setup.sh automatically when enable_oauth changes or on first provision
+# Run setup.sh when enable_oauth changes or on first provision
 resource "null_resource" "setup" {
   triggers = {
     enable_oauth = var.enable_oauth
     server_ip    = hcloud_server.dokku.ipv4_address
-    ntfy_topic    = var.ntfy_topic
-    ntfy_schedule = var.ntfy_schedule
   }
 
   provisioner "local-exec" {
     command = "${path.module}/setup.sh"
     environment = {
-      TF_SERVER_IP            = hcloud_server.dokku.ipv4_address
-      TF_ENABLE_OAUTH         = var.enable_oauth
-      TF_GOOGLE_CLIENT_ID     = var.google_client_id
-      TF_GOOGLE_CLIENT_SECRET = var.google_client_secret
-      TF_EMAIL_DOMAIN         = var.email_domain
-      TF_NTFY_TOPIC           = var.ntfy_topic
-      TF_NTFY_SCHEDULE        = var.ntfy_schedule
+      TF_SERVER_IP    = hcloud_server.dokku.ipv4_address
+      TF_ENABLE_OAUTH = var.enable_oauth
+      TF_EMAIL_DOMAIN = var.email_domain
+    }
+  }
+
+  depends_on = [hcloud_server.dokku]
+}
+
+# Run setup-ntfy.sh when notification config changes
+resource "null_resource" "ntfy" {
+  triggers = {
+    ntfy_topic    = var.ntfy_topic
+    ntfy_schedule = var.ntfy_schedule
+    server_ip     = hcloud_server.dokku.ipv4_address
+  }
+
+  provisioner "local-exec" {
+    command = "${path.module}/setup-ntfy.sh"
+    environment = {
+      TF_SERVER_IP     = hcloud_server.dokku.ipv4_address
+      TF_NTFY_TOPIC    = var.ntfy_topic
+      TF_NTFY_SCHEDULE = var.ntfy_schedule
     }
   }
 
