@@ -108,6 +108,8 @@ dokku apps:list
 
 ## Deploying an app
 
+### Via git push
+
 ```bash
 # 1. Create the app on the server
 dokku apps:create myapp
@@ -125,6 +127,58 @@ dokku letsencrypt:enable myapp
 ```
 
 Dokku auto-detects your stack via buildpacks, or you can add a `Dockerfile` for full control over versions (recommended for Elixir/Phoenix).
+
+### Via `git:from-image` (CI/CD)
+
+For apps that build Docker images in CI (e.g. GitHub Actions), deploy from a pre-built image instead of building on the VPS:
+
+```bash
+# One-time: authenticate Dokku with the container registry
+dokku registry:login ghcr.io USERNAME GITHUB_CLASSIC_PAT
+# Requires a GitHub classic PAT with read:packages scope
+
+# Deploy from image
+dokku git:from-image myapp ghcr.io/org/myapp:sha
+```
+
+Dokku reads `app.json` from the image's `WORKDIR` for deployment tasks (migrations, healthchecks). Make sure to `COPY app.json ./` in your Dockerfile.
+
+Example `app.json` for a Phoenix app:
+
+```json
+{
+  "scripts": {
+    "dokku": {
+      "predeploy": "/app/bin/migrate"
+    }
+  },
+  "healthchecks": {
+    "web": [
+      {
+        "type": "startup",
+        "name": "web check",
+        "path": "/api/health",
+        "attempts": 10,
+        "wait": 5,
+        "timeout": 30
+      }
+    ]
+  }
+}
+```
+
+Example GitHub Actions deploy step:
+
+```yaml
+- name: Deploy to Dokku
+  uses: appleboy/ssh-action@v1.2.0
+  with:
+    host: ${{ secrets.DOKKU_HOST }}
+    username: deploy
+    key: ${{ secrets.DEPLOY_SSH_KEY }}
+    script: |
+      sudo dokku git:from-image myapp ghcr.io/org/myapp:${{ github.sha }}
+```
 
 ## Adding a database
 
@@ -194,8 +248,15 @@ dokku ps:rebuild myapp
 ### Database backups
 
 ```bash
-dokku postgres:backup-auth myapp-db AWS_ACCESS_KEY AWS_SECRET_KEY us-east-1
-dokku postgres:backup-schedule myapp-db '0 3 * * *' my-backup-bucket
+# Configure S3-compatible credentials (e.g. Backblaze B2)
+dokku postgres:backup-auth myapp-db AWS_ACCESS_KEY AWS_SECRET_KEY REGION v4 https://ENDPOINT
+
+# Run first backup (sets the bucket name)
+dokku postgres:backup myapp-db my-backup-bucket
+
+# Schedule daily backups (bucket reused from above)
+# Note: cron expression must be quoted when run via SSH
+ssh dokku-host "sudo dokku postgres:backup-schedule myapp-db '0 3 * * *'"
 ```
 
 ## Files
