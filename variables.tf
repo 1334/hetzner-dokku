@@ -39,5 +39,5 @@ variable "google_client_secret" {
 
 variable "email_domain" {
   description = "Allowed email domain for SSO"
-  default     = "example.com"
+  default     = ""
 }
