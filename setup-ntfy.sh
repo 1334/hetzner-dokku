@@ -20,7 +20,7 @@ if [ -n "$NTFY_TOPIC" ]; then
 updates=\$(apt list --upgradable 2>/dev/null | grep -c upgradable || true)
 dokku_current=\$(dokku version 2>/dev/null)
 if [ \"\$updates\" -gt 0 ]; then
-  curl -sf -d \"[\$(hostname)] \$updates packages upgradable. \$dokku_current\" https://ntfy.sh/${NTFY_TOPIC}
+  curl -sf -d \"[\$(hostname)] \$updates packages upgradable. \$dokku_current\" ntfy.sh/${NTFY_TOPIC}
 fi
 SCRIPT
 sudo chmod +x /usr/local/bin/update-check"

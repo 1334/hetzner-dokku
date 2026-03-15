@@ -108,7 +108,7 @@ runcmd:
     updates=$(apt list --upgradable 2>/dev/null | grep -c upgradable || true)
     dokku_current=$(dokku version 2>/dev/null)
     if [ "$updates" -gt 0 ]; then
-      curl -sf -d "[$(hostname)] $updates packages upgradable. $dokku_current" https://ntfy.sh/${ntfy_topic}
+      curl -sf -d "[$(hostname)] $updates packages upgradable. $dokku_current" ntfy.sh/${ntfy_topic}
     fi
     EOF
     chmod +x /usr/local/bin/update-check
