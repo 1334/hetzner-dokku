@@ -54,7 +54,7 @@ resource "hcloud_server" "dokku" {
 }
 
 # Run setup.sh when enable_oauth changes or on first provision
-resource "null_resource" "setup" {
+resource "null_resource" "oauth_setup" {
   triggers = {
     enable_oauth = var.enable_oauth
     server_ip    = hcloud_server.dokku.ipv4_address
