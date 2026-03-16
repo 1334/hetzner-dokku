@@ -71,7 +71,6 @@ ExecStart=/usr/local/bin/oauth2-proxy \\
   --client-secret=${GOOGLE_CLIENT_SECRET} \\
   --cookie-secret=${COOKIE_SECRET} \\
   --cookie-secure=true \\
-  --cookie-domain=.${EMAIL_DOMAIN} \\
   --email-domain=${EMAIL_DOMAIN} \\
   --http-address=127.0.0.1:4180 \\
   --upstream=static://200 \\
