@@ -233,11 +233,11 @@ To re-enable SSO for the app, delete `nginx.conf.sigil` from the repo and redepl
 ## Maintenance
 
 ```bash
-# OS updates
-ssh dokku-work "sudo apt update && sudo apt upgrade -y"
+# Update every instance (interactive: shows pending packages and prompts per host)
+./update.sh
 
-# Dokku updates
-ssh dokku-work "sudo apt update && sudo apt install -y dokku"
+# Same, but apply everywhere without prompting
+./update.sh --yes
 
 # Postgres plugin updates
 dokku postgres:stop myapp-db
@@ -247,6 +247,8 @@ dokku postgres:start myapp-db
 # Manual Docker cleanup (automatic weekly cron is already set up)
 ssh dokku-work "docker system prune -af"
 ```
+
+`update.sh` iterates every terraform workspace, connects via the matching `dokku-<workspace>` SSH alias, runs `apt upgrade`, and reboots if `/var/run/reboot-required` is present.
 
 ### Update notifications
 
@@ -328,5 +330,6 @@ ssh dokku-work "sudo dokku postgres:backup-schedule myapp-db '0 3 * * *'"
 | `nginx.conf.sigil.public` | Default Dokku nginx template without auth (for public apps) |
 | `setup.sh` | Deploys nginx template, manages oauth2-proxy install/toggle |
 | `setup-ntfy.sh` | Configures update notification cron via ntfy.sh |
+| `update.sh` | Runs `apt upgrade` (and reboots if needed) across every workspace |
 | `envs/*.tfvars` | Per-instance secrets (gitignored) |
 | `envs/example.tfvars` | Config template |
