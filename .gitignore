@@ -4,4 +4,5 @@ envs/*.tfvars
 .terraform.lock.hcl
 *.tfstate
 *.tfstate.backup
+terraform.tfstate.d/
 setup.log
