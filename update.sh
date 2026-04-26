@@ -2,15 +2,26 @@
 set -euo pipefail
 
 # Run OS package updates on every Dokku host (one per terraform workspace).
-# Interactive by default; pass --yes to apply without prompting.
+# Interactive by default; pass --yes to apply without prompting,
+# or --dry-run to only list pending packages.
 #
 # Assumes ~/.ssh/config has a `dokku-<workspace>` alias for each instance
 # (see README → SSH access).
 
 YES=false
-if [ "${1:-}" = "--yes" ] || [ "${1:-}" = "-y" ]; then
-  YES=true
-fi
+DRY_RUN=false
+for arg in "$@"; do
+  case "$arg" in
+    --yes|-y) YES=true ;;
+    --dry-run|-n) DRY_RUN=true ;;
+    -h|--help)
+      sed -n '3,7p' "$0" | sed 's/^# \{0,1\}//'
+      echo "Usage: $0 [--yes|-y] [--dry-run|-n]"
+      exit 0
+      ;;
+    *) echo "Unknown argument: $arg" >&2; exit 2 ;;
+  esac
+done
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -55,6 +66,18 @@ for ws in $workspaces; do
   echo "    ${count} package(s) upgradable:"
   printf '%s\n' "$pending" | sed 's/^/      /'
 
+  if ssh "$host" "test -f /var/run/reboot-required" 2>/dev/null; then
+    reboot_pending=true
+    echo "    (reboot already pending on this host)"
+  else
+    reboot_pending=false
+  fi
+
+  if [ "$DRY_RUN" = true ]; then
+    echo "    Dry run — not upgrading."
+    continue
+  fi
+
   if [ "$YES" = false ] && ! confirm "    Upgrade ${ws}?"; then
     echo "    Skipped."
     continue
@@ -63,7 +86,7 @@ for ws in $workspaces; do
   echo "    Upgrading..."
   ssh "$host" "sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && sudo apt-get autoremove -y"
 
-  if ssh "$host" "test -f /var/run/reboot-required" 2>/dev/null; then
+  if [ "$reboot_pending" = true ] || ssh "$host" "test -f /var/run/reboot-required" 2>/dev/null; then
     if [ "$YES" = true ] || confirm "    Reboot required. Reboot ${ws} now?"; then
       echo "    Rebooting..."
       ssh "$host" "sudo reboot" || true

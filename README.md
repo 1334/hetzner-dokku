@@ -239,6 +239,9 @@ To re-enable SSO for the app, delete `nginx.conf.sigil` from the repo and redepl
 # Same, but apply everywhere without prompting
 ./update.sh --yes
 
+# Only list what would be upgraded (no changes, no reboot)
+./update.sh --dry-run
+
 # Postgres plugin updates
 dokku postgres:stop myapp-db
 dokku postgres:upgrade myapp-db
